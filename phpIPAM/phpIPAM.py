@@ -30,9 +30,6 @@ class phpIPAM(object):
         self.login()
 
 
-
-
-
     """ Authentication """
 
     """   Login to phpIPAM and get a token. """
@@ -309,6 +306,33 @@ class phpIPAM(object):
         logging.info("phpipam.subnet_search: success %s" % (subnet_search['success']))
         return subnet_search['data'][0]
 
+    """ get all addresses in a subnet
+
+           Attributes:
+               subnet_id: The subnet id
+       """
+
+    def subnet_all(self, subnet_id):
+        headers = {'token': self.token}
+        p = requests.get(self.base + "subnets/%s/addresses/?links=false" % (subnet_id), headers=headers)
+        subnet_all = json.loads(p.text)
+
+        if p.status_code != 200:
+            logging.error("phpipam.subnet_all: Failure %s" % (p.status_code))
+            logging.error(subnet_all)
+            self.error = p.status_code
+            self.error_message = subnet_all['message']
+            return self.error, self.error_message
+
+        if not subnet_all['success']:
+            logging.error("phpipam.subnet_all: FAILURE: %s" % (subnet_all['code']))
+            self.error = subnet_all['code']
+            return self.error
+
+        logging.info("phpipam.subnet_all: success %s" % (subnet_all['success']))
+        return subnet_all['data']
+
+
 
     """ get first available
     
@@ -387,7 +411,7 @@ class phpIPAM(object):
      """
     
     
-    def subnets_delete(self, subnet_id, ):
+    def subnet_delete(self, subnet_id, ):
         headers = {'token': self.token}
         p = requests.delete(self.base + "subnets/%s/" % (subnet_id), headers=headers)
         print p.text
@@ -409,6 +433,95 @@ class phpIPAM(object):
         return subnets_delete['code']
 
     """ Address """
+
+    """ Get Information about a specific address
+
+                Attributes:
+                    address_id: The address identifier either the ID or cidr
+            """
+
+    def address_get(self, address_id):
+        headers = {'token': self.token}
+        p = requests.get(self.base + "addresses/%s/?links=false" % (address_id), headers=headers)
+        address_get = json.loads(p.text)
+
+        if p.status_code != 200:
+            logging.error("phpipam.address_get: Failure %s" % (p.status_code))
+            logging.error(address_get)
+            self.error = p.status_code
+            self.error_message = address_get['message']
+            return self.error, self.error_message
+
+        if not address_get['success']:
+            logging.error("phpipam.address_get: FAILURE: %s" % (address_get['code']))
+            self.error = address_get['code']
+            return self.error
+
+        logging.info("phpipam.address_get: success %s" % (address_get['success']))
+        return address_get['data']
+
+    """ Search for a specific address
+
+                Attributes:
+                    address: The address identifier either the ID or address
+            """
+
+    def address_search(self, address):
+        headers = {'token': self.token}
+        p = requests.get(self.base + "addresses/search/%s/?links=false" % (address), headers=headers)
+        address_get = json.loads(p.text)
+
+        if p.status_code != 200:
+            logging.error("phpipam.address_get: Failure %s" % (p.status_code))
+            logging.error(address_get)
+            self.error = p.status_code
+            self.error_message = address_get['message']
+            return self.error, self.error_message
+
+        if not address_get['success']:
+            logging.error("phpipam.address_get: FAILURE: %s" % (address_get['code']))
+            self.error = address_get['code']
+            return self.error
+
+        logging.info("phpipam.address_get: success %s" % (address_get['success']))
+        return address_get['data']
+
+    """ Create new address
+
+           Attributes:
+               number: address number
+               name: short name
+               description: description
+
+       """
+
+    def address_create(self, ip, subnetId, hostname, description="", is_gateway=0, mac="" ):
+        headers = {'token': self.token}
+        data = {
+            "ip":ip,
+            "subnetId":subnetId,
+            "hostname":hostname,
+            "description":description,
+            "is_gateway":is_gateway,
+            "mac": mac
+        }
+        p = requests.post(self.base + "addresses/", headers=headers, data=data)
+        address_create = json.loads(p.text)
+
+        if p.status_code != 201:
+            logging.error("phpipam.address_create: Failure %s" % (p.status_code))
+            logging.error(address_create)
+            self.error = p.status_code
+            self.error_message = address_create['message']
+            return self.error, self.error_message
+
+        if not address_create['success']:
+            logging.error("phpipam.address_create: FAILURE: %s" % (address_create['code']))
+            self.error = address_create['code']
+            return self.error
+
+        logging.info("phpipam.address_create: success %s" % (address_create['success']))
+        return address_create['data']
 
     """ VLAN """
 
