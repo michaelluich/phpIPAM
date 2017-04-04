@@ -93,7 +93,6 @@ class phpIPAM(object):
         self.token = ticketJson['token']
         self.token_expires= ticketJson['expires']
         logging.info("phpipam.login: Sucessful Login to %s" %(self.server))
-        logging.debug("phpipam.login: IPAM Ticket: %s" %(self.token))
         logging.debug("phpipam.login: IPAM Ticket expiration: %s" %(self.token_expires))
         return {"expires":self.token_expires}
 
