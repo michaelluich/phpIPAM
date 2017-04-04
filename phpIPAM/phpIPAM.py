@@ -68,7 +68,7 @@ class phpIPAM(object):
         response = json.loads(p.text)
         callingfct = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
 
-        if p.status_code != 200:
+        if not p.status_code in (200, 201):
             logging.error("phpipam.%s: Failure %s" % (callingfct, p.status_code))
             logging.error(response)
             self.error = p.status_code
