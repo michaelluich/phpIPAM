@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class phpIPAM(object):
     """An interface to phpIPAM web API."""
 
-    def __init__(self, server, app_id, username, password, ssl_verify=True):
+    def __init__(self, server, app_id, username, password, ssl_verify=True, debug=False):
         """Parameters:
         server: the base server location.
         app_id: the app ID to access
@@ -28,9 +28,11 @@ class phpIPAM(object):
         self.app_id = app_id
         self.username = username
         self.password = password
-        self.base = "%s/api/%s/" %(self.server,self.app_id)
         self.appbase = "%s/api/%s" %(self.server,self.app_id)
         self.ssl_verify = ssl_verify
+        self.token = None
+        if debug:
+            self.enable_debug()
         self.login()
 
     def enable_debug(self):
@@ -46,15 +48,23 @@ class phpIPAM(object):
         requests_log.setLevel(logging.DEBUG)
         requests_log.propagate = True
 
-    def __query(self, entrypoint, method=requests.get, data=None):
-        headers = {'token': self.token}
+    def __query(self, entrypoint, method=requests.get, data=None, auth=None):
+        headers = {}
+        if self.token:
+            headers['token'] = self.token
         if data != None:
             if type(data) != str: data = json.dumps(data)
             headers['Content-Type'] = 'application/json'
             if method == requests.get:
                 method = requests.post
-        print(method)
-        p = method(self.appbase + entrypoint, data=data, headers=headers, verify=self.ssl_verify)
+
+        p = method(
+            self.appbase + entrypoint,
+            data=data,
+            headers=headers,
+            auth=auth,
+            verify=self.ssl_verify
+        )
         response = json.loads(p.text)
         callingfct = inspect.getouterframes(inspect.currentframe(), 2)[1][3]
 
@@ -78,19 +88,12 @@ class phpIPAM(object):
 
     def login(self):
         "Login to phpIPAM and get a token."
-        p = requests.post(self.base + 'user/', auth=HTTPBasicAuth(self.username, self.password), verify=self.ssl_verify)
-        # print the html returned or something more intelligent to see if it's a successful login page.
-        if p.status_code != 200:
-            logging.error("phpipam.login: Login Problem %s " %(p.status_code))
-            logging.error(p.text)
-            self.error=77
-            raise requests.exceptions.HTTPError(response=response)
+        ticketJson = self.__query('/user/', auth=HTTPBasicAuth(self.username, self.password), method=requests.post)
         # Ok So now we have a token!
-        ticketJson = json.loads(p.text)
-        self.token = ticketJson['data']['token']
-        self.token_expires= ticketJson['data']['expires']
+        self.token = ticketJson['token']
+        self.token_expires= ticketJson['expires']
         logging.info("phpipam.login: Sucessful Login to %s" %(self.server))
-        logging.debug("phpipam.login: IPAM Ticket: %s" %(ticketJson['data']['token']))
+        logging.debug("phpipam.login: IPAM Ticket: %s" %(self.token))
         logging.debug("phpipam.login: IPAM Ticket expiration: %s" %(self.token_expires))
         return {"expires":self.token_expires}
 
@@ -109,7 +112,7 @@ class phpIPAM(object):
 
     # Authorization
 
-    def authorization(self,controller):
+    def authorization(self, controller):
         "Check the authorization of a controller and get a list of methods"
         return self.__query("/%s/" %(controller))['methods']
 
@@ -254,7 +257,6 @@ class phpIPAM(object):
         if description != None: data["description"] = description
         if is_gateway != None: data["is_gateway"] = is_gateway
         if mac != None: data["mac"] = mac
-        print(data)
         return self.__query("/addresses/%s/"%orgdata['id'], method=requests.patch, data=data)
 
     def address_create(self, ip, subnetId, hostname, description="", is_gateway=0, mac=""):
