@@ -113,7 +113,7 @@ class phpIPAM(object):
 
     def authorization(self, controller):
         "Check the authorization of a controller and get a list of methods"
-        return self.__query("/%s/" %(controller))['methods']
+        return self.__query("/%s/" %(controller))['Network']
 
     ### Controllers
 
@@ -200,7 +200,7 @@ class phpIPAM(object):
         return self.__query("/subnets/%s/first_free/?links=false" % (subnet_id))
 
 
-    def subnet_create(self, subnet, mask, sectionId, description="", vlanid=None, mastersubnetid=0, nameserverid=None):
+    def subnet_create(self, subnet, mask, sectionId, description="", vlanid=None, mastersubnet_id=0, nameserverid=None):
         """Create new subnet
 
         Parameters:
@@ -209,7 +209,7 @@ class phpIPAM(object):
         sectionId
         description: description
         vlanid:
-        mastersubnetid:
+        mastersubnet_id:
         nameserverid:"""
         data={
             'subnet' : subnet,
@@ -217,7 +217,7 @@ class phpIPAM(object):
             "sectionId" : sectionId,
             'description' : description,
             'vlanId' : vlanid,
-            'masterSubnetId' : mastersubnetid,
+            'mastersubnet_id' : mastersubnet_id,
             'nameserverId' : nameserverid
         }
         return self.__query("/subnets/", data=data)
@@ -258,7 +258,7 @@ class phpIPAM(object):
         if mac != None: data["mac"] = mac
         return self.__query("/addresses/%s/"%orgdata['id'], method=requests.patch, data=data)
 
-    def address_create(self, ip, subnetId, hostname, description="", is_gateway=0, mac=""):
+    def address_create(self, ip, subnet_id, hostname, description="", is_gateway=0, mac=""):
         """Create new address
 
         Parameters:
@@ -267,13 +267,27 @@ class phpIPAM(object):
         description: description"""
         data = {
             "ip":ip,
-            "subnetId":subnetId,
+            "subnetId":subnet_id,
             "hostname":hostname,
             "description":description,
             "is_gateway":is_gateway,
             "mac": mac,
         }
         return self.__query("/addresses/", data=data)
+    
+    def address_create_first_free(self, subnet_id, hostname, description="", is_gateway=0, mac=""):
+        """Create new address
+
+        Parameters:
+        number: address number
+        name: short name
+        description: description"""
+        data = {
+            "subnetId":subnet_id,
+            "hostname":hostname,
+            "description":description
+        }
+        return self.__query("/addresses/first_free/", data=data)
 
     ## VLAN
 
